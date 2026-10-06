@@ -11,10 +11,17 @@ const StaffLogin = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
+  const [validationError, setValidationError] = useState('');
+
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (!username.trim() || !password.trim()) {
+      setValidationError('Please enter both username and password');
+      return;
+    }
+    setValidationError('');
     try {
-      const res = await axios.post('http://localhost:8081/api/auth/login', { username, password });
+      const res = await axios.post('/api/auth/login', { username, password });
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('role', res.data.role);
       if (res.data.departmentId) {
@@ -46,6 +53,7 @@ const StaffLogin = () => {
           </div>
           <div className="p-4 p-md-5 bg-white">
             {error && <div className="alert alert-danger border-0 shadow-sm rounded-3 fw-medium">{error}</div>}
+            {validationError && <div className="alert alert-warning border-0 shadow-sm rounded-3 fw-medium">{validationError}</div>}
             <form onSubmit={handleLogin}>
               <div className="mb-4">
                 <label className="form-label fw-medium text-muted d-flex align-items-center gap-2">
@@ -53,9 +61,12 @@ const StaffLogin = () => {
                 </label>
                 <input 
                   type="text" 
-                  className="form-control form-control-lg bg-light" 
+                  className={`form-control form-control-lg bg-light ${validationError && !username.trim() ? 'is-invalid' : ''}`} 
                   value={username} 
-                  onChange={(e) => setUsername(e.target.value)} 
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    setValidationError('');
+                  }} 
                   required 
                   placeholder="Enter your username"
                 />

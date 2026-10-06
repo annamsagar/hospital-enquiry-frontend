@@ -14,18 +14,20 @@ const AdminDashboard = () => {
   // Form states
   const [showDeptModal, setShowDeptModal] = useState(false);
   const [deptForm, setDeptForm] = useState({ id: null, name: '', description: '' });
+  const [deptErrors, setDeptErrors] = useState({});
 
   const [showUserModal, setShowUserModal] = useState(false);
   const [userForm, setUserForm] = useState({ id: null, username: '', password: '', role: 'ROLE_RECEPTIONIST', departmentId: '' });
+  const [userErrors, setUserErrors] = useState({});
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const [statsRes, deptsRes, usersRes, enqRes] = await Promise.all([
-        axios.get('http://localhost:8081/api/enquiries/dashboard'),
-        axios.get('http://localhost:8081/api/departments'),
-        axios.get('http://localhost:8081/api/users'),
-        axios.get('http://localhost:8081/api/enquiries')
+        axios.get('/api/enquiries/dashboard'),
+        axios.get('/api/departments'),
+        axios.get('/api/users'),
+        axios.get('/api/enquiries')
       ]);
       setStats(statsRes.data);
       setDepartments(deptsRes.data);
@@ -45,7 +47,7 @@ const AdminDashboard = () => {
   const handleSearchEnquiries = async (e) => {
     e.preventDefault();
     try {
-      const url = searchQuery ? `http://localhost:8081/api/enquiries/search?query=${encodeURIComponent(searchQuery)}` : 'http://localhost:8081/api/enquiries';
+      const url = searchQuery ? `/api/enquiries/search?query=${encodeURIComponent(searchQuery)}` : '/api/enquiries';
       const res = await axios.get(url);
       setEnquiries(res.data);
     } catch (error) {
@@ -54,13 +56,21 @@ const AdminDashboard = () => {
   };
 
   // --- Department CRUD ---
+  const validateDeptForm = () => {
+    const errors = {};
+    if (!deptForm.name.trim()) errors.name = 'Department name is required';
+    setDeptErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSaveDept = async (e) => {
     e.preventDefault();
+    if (!validateDeptForm()) return;
     try {
       if (deptForm.id) {
-        await axios.put(`http://localhost:8081/api/departments/${deptForm.id}`, { name: deptForm.name, description: deptForm.description });
+        await axios.put(`/api/departments/${deptForm.id}`, { name: deptForm.name, description: deptForm.description });
       } else {
-        await axios.post('http://localhost:8081/api/departments', { name: deptForm.name, description: deptForm.description });
+        await axios.post('/api/departments', { name: deptForm.name, description: deptForm.description });
       }
       setShowDeptModal(false);
       fetchData();
@@ -72,7 +82,7 @@ const AdminDashboard = () => {
   const handleDeleteDept = async (id) => {
     if (!window.confirm('Are you sure you want to delete this department?')) return;
     try {
-      await axios.delete(`http://localhost:8081/api/departments/${id}`);
+      await axios.delete(`/api/departments/${id}`);
       fetchData();
     } catch (error) {
       alert(error.response?.data?.message || 'Cannot delete department. It may be assigned to existing staff or enquiries.');
@@ -80,8 +90,18 @@ const AdminDashboard = () => {
   };
 
   // --- User CRUD ---
+  const validateUserForm = () => {
+    const errors = {};
+    if (!userForm.username.trim()) errors.username = 'Username is required';
+    if (!userForm.id && !userForm.password.trim()) errors.password = 'Password is required for new users';
+    if (!userForm.role) errors.role = 'Role is required';
+    setUserErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSaveUser = async (e) => {
     e.preventDefault();
+    if (!validateUserForm()) return;
     try {
       const payload = { username: userForm.username, role: userForm.role };
       if (userForm.password) payload.password = userForm.password;
@@ -90,9 +110,9 @@ const AdminDashboard = () => {
         ? `?departmentId=${userForm.departmentId}` : '';
 
       if (userForm.id) {
-        await axios.put(`http://localhost:8081/api/users/${userForm.id}${params}`, payload);
+        await axios.put(`/api/users/${userForm.id}${params}`, payload);
       } else {
-        await axios.post(`http://localhost:8081/api/users${params}`, payload);
+        await axios.post(`/api/users${params}`, payload);
       }
       setShowUserModal(false);
       fetchData();
@@ -104,7 +124,7 @@ const AdminDashboard = () => {
   const handleDeleteUser = async (id) => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
     try {
-      await axios.delete(`http://localhost:8081/api/users/${id}`);
+      await axios.delete(`/api/users/${id}`);
       fetchData();
     } catch (error) {
       alert('Failed to delete user.');
@@ -218,19 +238,19 @@ const AdminDashboard = () => {
               <div className="col-md-4">
                 <div className="stat-card p-4 bg-light">
                   <h6 className="text-muted fw-bold text-uppercase mb-2">Departments</h6>
-                  <h3 className="fw-bold mb-0">{stats.totalDepartments}</h3>
+                  <h3 className="fw-bold mb-0 text-primary">{stats.totalDepartments}</h3>
                 </div>
               </div>
               <div className="col-md-4">
                 <div className="stat-card p-4 bg-light">
                   <h6 className="text-muted fw-bold text-uppercase mb-2">Receptionists</h6>
-                  <h3 className="fw-bold mb-0">{stats.totalReceptionists}</h3>
+                  <h3 className="fw-bold mb-0 text-primary">{stats.totalReceptionists}</h3>
                 </div>
               </div>
               <div className="col-md-4">
                 <div className="stat-card p-4 bg-light">
                   <h6 className="text-muted fw-bold text-uppercase mb-2">Dept. Staff</h6>
-                  <h3 className="fw-bold mb-0">{stats.totalDepartmentStaff}</h3>
+                  <h3 className="fw-bold mb-0 text-primary">{stats.totalDepartmentStaff}</h3>
                 </div>
               </div>
             </div>
@@ -332,7 +352,8 @@ const AdminDashboard = () => {
             <form onSubmit={handleSaveDept}>
               <div className="mb-3">
                 <label className="form-label fw-medium">Department Name</label>
-                <input type="text" className="form-control" required value={deptForm.name} onChange={e => setDeptForm({...deptForm, name: e.target.value})} />
+                <input type="text" className={`form-control ${deptErrors.name ? 'is-invalid' : ''}`} required value={deptForm.name} onChange={e => { setDeptForm({...deptForm, name: e.target.value}); setDeptErrors({...deptErrors, name: ''}); }} />
+                {deptErrors.name && <div className="invalid-feedback">{deptErrors.name}</div>}
               </div>
               <div className="mb-4">
                 <label className="form-label fw-medium">Description</label>
@@ -354,29 +375,43 @@ const AdminDashboard = () => {
             <form onSubmit={handleSaveUser}>
               <div className="mb-3">
                 <label className="form-label fw-medium">Username</label>
-                <input type="text" className="form-control" required value={userForm.username} onChange={e => setUserForm({...userForm, username: e.target.value})} />
+                <input type="text" className={`form-control ${userErrors.username ? 'is-invalid' : ''}`} required value={userForm.username} onChange={e => { setUserForm({...userForm, username: e.target.value}); setUserErrors({...userErrors, username: ''}); }} />
+                {userErrors.username && <div className="invalid-feedback">{userErrors.username}</div>}
               </div>
               <div className="mb-3">
                 <label className="form-label fw-medium">Password {userForm.id && <span className="text-muted fw-normal">(Leave blank to keep current)</span>}</label>
-                <input type="password" className="form-control" required={!userForm.id} value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} />
+                <input type="password" className={`form-control ${userErrors.password ? 'is-invalid' : ''}`} required={!userForm.id} value={userForm.password} onChange={e => { setUserForm({...userForm, password: e.target.value}); setUserErrors({...userErrors, password: ''}); }} />
+                {userErrors.password && <div className="invalid-feedback">{userErrors.password}</div>}
               </div>
-              <div className="mb-3">
+              <div className="mb-4">
                 <label className="form-label fw-medium">Role</label>
-                <select className="form-select" value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value, departmentId: ''})}>
+                <select 
+                  className={`form-select ${userErrors.role ? 'is-invalid' : ''}`} 
+                  required
+                  value={userForm.role === 'ROLE_DEPARTMENT_STAFF' ? `DEPT_${userForm.departmentId}` : userForm.role} 
+                  onChange={e => {
+                    const val = e.target.value;
+                    setUserErrors({...userErrors, role: ''});
+                    if (val.startsWith('DEPT_')) {
+                      setUserForm({...userForm, role: 'ROLE_DEPARTMENT_STAFF', departmentId: val.split('_')[1]});
+                    } else {
+                      setUserForm({...userForm, role: val, departmentId: ''});
+                    }
+                  }}
+                >
+                  <option value="">Select a role...</option>
                   <option value="ROLE_RECEPTIONIST">Receptionist</option>
-                  <option value="ROLE_DEPARTMENT_STAFF">Department Staff</option>
                   <option value="ROLE_ADMIN">Admin</option>
+                  <optgroup label="Department Staff">
+                    {departments.map(d => (
+                      <option key={d.id} value={`DEPT_${d.id}`}>
+                        {d.name} Staff
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
+                {userErrors.role && <div className="invalid-feedback">{userErrors.role}</div>}
               </div>
-              {userForm.role === 'ROLE_DEPARTMENT_STAFF' && (
-                <div className="mb-4">
-                  <label className="form-label fw-medium">Assign Department</label>
-                  <select className="form-select" required value={userForm.departmentId} onChange={e => setUserForm({...userForm, departmentId: e.target.value})}>
-                    <option value="">Select a department...</option>
-                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
-                </div>
-              )}
               <div className="d-flex justify-content-end gap-3 mt-4">
                 <button type="button" className="btn btn-light border" onClick={() => setShowUserModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Save User</button>

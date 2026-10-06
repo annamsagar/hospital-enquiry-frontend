@@ -12,7 +12,34 @@ const SubmitEnquiry = () => {
     enquiryType: 'OTHER',
     description: ''
   });
+  const [errors, setErrors] = useState({});
   const [successMsg, setSuccessMsg] = useState('');
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.patientName.trim()) {
+      newErrors.patientName = 'Patient name is required';
+    } else if (!/^[a-zA-Z\s]+$/.test(formData.patientName)) {
+      newErrors.patientName = 'Name can only contain letters and spaces';
+    }
+
+    if (!formData.patientPhone.trim()) {
+      newErrors.patientPhone = 'Phone number is required';
+    } else if (!/^\+?[0-9\s\-()]{7,15}$/.test(formData.patientPhone)) {
+      newErrors.patientPhone = 'Invalid phone number format';
+    }
+
+    if (formData.patientAge && (isNaN(formData.patientAge) || formData.patientAge <= 0 || formData.patientAge > 120)) {
+      newErrors.patientAge = 'Please enter a valid age between 1 and 120';
+    }
+
+    if (!formData.description.trim()) {
+      newErrors.description = 'Description is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const enquiryTypes = ['APPOINTMENT', 'BILLING', 'DEPARTMENT_INFORMATION', 'DOCTOR_AVAILABILITY', 'LAB_REPORTS', 'OTHER'];
 
@@ -22,8 +49,9 @@ const SubmitEnquiry = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
     try {
-      const response = await axios.post('http://localhost:8081/api/enquiries', formData);
+      const response = await axios.post('/api/enquiries', formData);
       setSuccessMsg(`Enquiry submitted successfully! Your Tracking ID is: ${response.data.id}`);
       setFormData({
         patientName: '',
@@ -32,6 +60,7 @@ const SubmitEnquiry = () => {
         enquiryType: 'OTHER',
         description: ''
       });
+      setErrors({});
       window.scrollTo(0,0);
     } catch (error) {
       console.error('Error submitting enquiry', error);
@@ -58,15 +87,18 @@ const SubmitEnquiry = () => {
               <div className="row g-4 mb-4">
                 <div className="col-md-12">
                   <label className="form-label fw-medium text-muted">{t('patient_name')}</label>
-                  <input type="text" className="form-control form-control-lg" name="patientName" value={formData.patientName} onChange={handleChange} required placeholder="John Doe" />
+                  <input type="text" className={`form-control form-control-lg ${errors.patientName ? 'is-invalid' : ''}`} name="patientName" value={formData.patientName} onChange={handleChange} required placeholder="John Doe" />
+                  {errors.patientName && <div className="invalid-feedback">{errors.patientName}</div>}
                 </div>
                 <div className="col-md-6">
                   <label className="form-label fw-medium text-muted">{t('phone_number')}</label>
-                  <input type="text" className="form-control form-control-lg" name="patientPhone" value={formData.patientPhone} onChange={handleChange} required placeholder="+1 234 567 8900" />
+                  <input type="text" className={`form-control form-control-lg ${errors.patientPhone ? 'is-invalid' : ''}`} name="patientPhone" value={formData.patientPhone} onChange={handleChange} required placeholder="+1 234 567 8900" />
+                  {errors.patientPhone && <div className="invalid-feedback">{errors.patientPhone}</div>}
                 </div>
                 <div className="col-md-6">
                   <label className="form-label fw-medium text-muted">{t('age')}</label>
-                  <input type="number" className="form-control form-control-lg" name="patientAge" value={formData.patientAge} onChange={handleChange} placeholder="35" />
+                  <input type="number" className={`form-control form-control-lg ${errors.patientAge ? 'is-invalid' : ''}`} name="patientAge" value={formData.patientAge} onChange={handleChange} placeholder="35" />
+                  {errors.patientAge && <div className="invalid-feedback">{errors.patientAge}</div>}
                 </div>
                 <div className="col-md-12">
                   <label className="form-label fw-medium text-muted">{t('enquiry_type')}</label>
@@ -78,7 +110,8 @@ const SubmitEnquiry = () => {
                 </div>
                 <div className="col-md-12">
                   <label className="form-label fw-medium text-muted">{t('description')}</label>
-                  <textarea className="form-control form-control-lg" rows="4" name="description" value={formData.description} onChange={handleChange} required placeholder="How can we help you?"></textarea>
+                  <textarea className={`form-control form-control-lg ${errors.description ? 'is-invalid' : ''}`} rows="4" name="description" value={formData.description} onChange={handleChange} required placeholder="How can we help you?"></textarea>
+                  {errors.description && <div className="invalid-feedback">{errors.description}</div>}
                 </div>
               </div>
               <button type="submit" className="btn-premium w-100 fs-5 py-3 mt-2">{t('submit')}</button>

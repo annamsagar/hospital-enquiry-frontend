@@ -16,11 +16,38 @@ const ReceptionistDashboard = () => {
     enquiryType: 'APPOINTMENT',
     description: ''
   });
+  const [errors, setErrors] = useState({});
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.patientName.trim()) {
+      newErrors.patientName = 'Patient name is required';
+    } else if (!/^[a-zA-Z\s]+$/.test(formData.patientName)) {
+      newErrors.patientName = 'Name can only contain letters and spaces';
+    }
+
+    if (!formData.patientPhone.trim()) {
+      newErrors.patientPhone = 'Phone number is required';
+    } else if (!/^\+?[0-9\s\-()]{7,15}$/.test(formData.patientPhone)) {
+      newErrors.patientPhone = 'Invalid phone number format';
+    }
+
+    if (formData.patientAge && (isNaN(formData.patientAge) || formData.patientAge <= 0 || formData.patientAge > 120)) {
+      newErrors.patientAge = 'Please enter a valid age between 1 and 120';
+    }
+
+    if (!formData.description.trim()) {
+      newErrors.description = 'Description is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const fetchEnquiries = async (query = '') => {
     setLoading(true);
     try {
-      const url = query ? `http://localhost:8081/api/enquiries/search?query=${encodeURIComponent(query)}` : 'http://localhost:8081/api/enquiries';
+      const url = query ? `/api/enquiries/search?query=${encodeURIComponent(query)}` : '/api/enquiries';
       const res = await axios.get(url);
       setEnquiries(res.data);
     } catch (error) {
@@ -32,7 +59,7 @@ const ReceptionistDashboard = () => {
 
   const fetchDepartments = async () => {
     try {
-      const res = await axios.get('http://localhost:8081/api/departments');
+      const res = await axios.get('/api/departments');
       setDepartments(res.data);
     } catch (error) {
       console.error('Error fetching departments', error);
@@ -51,7 +78,7 @@ const ReceptionistDashboard = () => {
 
   const updateStatus = async (id, status) => {
     try {
-      await axios.put(`http://localhost:8081/api/enquiries/${id}/status?status=${status}`);
+      await axios.put(`/api/enquiries/${id}/status?status=${status}`);
       fetchEnquiries(searchQuery);
     } catch (error) {
       console.error('Error updating status', error);
@@ -61,7 +88,7 @@ const ReceptionistDashboard = () => {
   const updateDepartment = async (id, departmentId) => {
     if (!departmentId) return;
     try {
-      await axios.put(`http://localhost:8081/api/enquiries/${id}/department?departmentId=${departmentId}`);
+      await axios.put(`/api/enquiries/${id}/department?departmentId=${departmentId}`);
       fetchEnquiries(searchQuery);
     } catch (error) {
       console.error('Error updating department', error);
@@ -70,8 +97,9 @@ const ReceptionistDashboard = () => {
 
   const handleCreateEnquiry = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
     try {
-      await axios.post('http://localhost:8081/api/enquiries', formData);
+      await axios.post('/api/enquiries', formData);
       setShowCreateModal(false);
       setFormData({
         patientName: '',
@@ -98,6 +126,7 @@ const ReceptionistDashboard = () => {
   };
 
   return (
+    <>
     <div className="container-fluid px-0 animate-fade-in-up">
       <div className="d-flex justify-content-between align-items-center mb-5">
         <div>
@@ -127,48 +156,7 @@ const ReceptionistDashboard = () => {
         </div>
       </div>
 
-      {showCreateModal && (
-        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-          <div className="glass-card bg-white p-4" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h4 className="fw-bold mb-4">Register Patient & Create Enquiry</h4>
-            <form onSubmit={handleCreateEnquiry}>
-              <div className="mb-3">
-                <label className="form-label fw-medium">Patient Name</label>
-                <input type="text" className="form-control" required value={formData.patientName} onChange={e => setFormData({...formData, patientName: e.target.value})} />
-              </div>
-              <div className="row mb-3">
-                <div className="col-md-6">
-                  <label className="form-label fw-medium">Phone Number</label>
-                  <input type="tel" className="form-control" required value={formData.patientPhone} onChange={e => setFormData({...formData, patientPhone: e.target.value})} />
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label fw-medium">Age</label>
-                  <input type="number" className="form-control" value={formData.patientAge} onChange={e => setFormData({...formData, patientAge: e.target.value})} />
-                </div>
-              </div>
-              <div className="mb-3">
-                <label className="form-label fw-medium">Enquiry Type</label>
-                <select className="form-select" value={formData.enquiryType} onChange={e => setFormData({...formData, enquiryType: e.target.value})}>
-                  <option value="APPOINTMENT">Appointment</option>
-                  <option value="BILLING">Billing</option>
-                  <option value="DEPARTMENT_INFO">Department Info</option>
-                  <option value="DOCTOR_AVAILABILITY">Doctor Availability</option>
-                  <option value="LAB_REPORTS">Lab Reports</option>
-                  <option value="OTHER">Other</option>
-                </select>
-              </div>
-              <div className="mb-4">
-                <label className="form-label fw-medium">Description</label>
-                <textarea className="form-control" rows="3" required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
-              </div>
-              <div className="d-flex justify-content-end gap-3">
-                <button type="button" className="btn btn-light border" onClick={() => setShowCreateModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Create Enquiry</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+
 
       <div className="glass-card premium-table overflow-auto p-4 bg-white">
         {loading ? (
@@ -244,6 +232,53 @@ const ReceptionistDashboard = () => {
         )}
       </div>
     </div>
+      {showCreateModal && (
+        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050, backdropFilter: 'blur(4px)' }}>
+          <div className="glass-card bg-white p-4 p-md-5 w-100 shadow-lg" style={{ maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '20px' }}>
+            <h4 className="fw-bold mb-4 text-dark">Register Patient & Create Enquiry</h4>
+            <form onSubmit={handleCreateEnquiry}>
+              <div className="mb-4">
+                <label className="form-label fw-bold text-muted small text-uppercase">Patient Name</label>
+                <input type="text" className={`form-control form-control-lg shadow-sm border-0 bg-light ${errors.patientName ? 'is-invalid' : ''}`} required value={formData.patientName} onChange={e => setFormData({...formData, patientName: e.target.value})} placeholder="Full Name" />
+                {errors.patientName && <div className="invalid-feedback">{errors.patientName}</div>}
+              </div>
+              <div className="row g-3 mb-4">
+                <div className="col-md-6">
+                  <label className="form-label fw-bold text-muted small text-uppercase">Phone Number</label>
+                  <input type="tel" className={`form-control form-control-lg shadow-sm border-0 bg-light ${errors.patientPhone ? 'is-invalid' : ''}`} required value={formData.patientPhone} onChange={e => setFormData({...formData, patientPhone: e.target.value})} placeholder="Phone" />
+                  {errors.patientPhone && <div className="invalid-feedback">{errors.patientPhone}</div>}
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label fw-bold text-muted small text-uppercase">Age</label>
+                  <input type="number" className={`form-control form-control-lg shadow-sm border-0 bg-light ${errors.patientAge ? 'is-invalid' : ''}`} value={formData.patientAge} onChange={e => setFormData({...formData, patientAge: e.target.value})} placeholder="Age" />
+                  {errors.patientAge && <div className="invalid-feedback">{errors.patientAge}</div>}
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className="form-label fw-bold text-muted small text-uppercase">Enquiry Type</label>
+                <select className="form-select form-select-lg shadow-sm border-0 bg-light" value={formData.enquiryType} onChange={e => setFormData({...formData, enquiryType: e.target.value})}>
+                  <option value="APPOINTMENT">Appointment</option>
+                  <option value="BILLING">Billing</option>
+                  <option value="DEPARTMENT_INFO">Department Info</option>
+                  <option value="DOCTOR_AVAILABILITY">Doctor Availability</option>
+                  <option value="LAB_REPORTS">Lab Reports</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+              <div className="mb-5">
+                <label className="form-label fw-bold text-muted small text-uppercase">Description</label>
+                <textarea className={`form-control shadow-sm border-0 bg-light p-3 ${errors.description ? 'is-invalid' : ''}`} rows="3" required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Provide details about the enquiry..."></textarea>
+                {errors.description && <div className="invalid-feedback">{errors.description}</div>}
+              </div>
+              <div className="d-flex justify-content-end gap-3 mt-2">
+                <button type="button" className="btn btn-light px-4 py-2 border rounded-pill fw-medium" onClick={() => setShowCreateModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary px-4 py-2 rounded-pill fw-medium shadow-sm">Create Enquiry</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

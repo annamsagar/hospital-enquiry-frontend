@@ -8,11 +8,17 @@ const TrackEnquiry = () => {
   const [enquiryId, setEnquiryId] = useState('');
   const [enquiry, setEnquiry] = useState(null);
   const [error, setError] = useState('');
+  const [validationError, setValidationError] = useState('');
 
   const handleTrack = async (e) => {
     e.preventDefault();
+    if (!enquiryId || isNaN(enquiryId) || parseInt(enquiryId) <= 0) {
+      setValidationError('Please enter a valid positive Enquiry ID');
+      return;
+    }
+    setValidationError('');
     try {
-      const response = await axios.get(`http://localhost:8081/api/enquiries/${enquiryId}`);
+      const response = await axios.get(`/api/enquiries/${enquiryId}`);
       if (response.data) {
         setEnquiry(response.data);
         setError('');
@@ -48,14 +54,18 @@ const TrackEnquiry = () => {
           <form onSubmit={handleTrack} className="d-flex flex-column flex-sm-row justify-content-center gap-3">
             <input 
               type="number" 
-              className="form-control form-control-lg text-center text-sm-start flex-grow-1 shadow-sm" 
+              className={`form-control form-control-lg text-center text-sm-start flex-grow-1 shadow-sm ${validationError ? 'is-invalid' : ''}`} 
               placeholder="Enter Enquiry ID"
               value={enquiryId}
-              onChange={(e) => setEnquiryId(e.target.value)}
+              onChange={(e) => {
+                setEnquiryId(e.target.value);
+                setValidationError('');
+              }}
               required
             />
             <button type="submit" className="btn-premium px-4">Track Status</button>
           </form>
+          {validationError && <div className="text-danger mt-2 text-start px-3">{validationError}</div>}
         </div>
 
         {error && <div className="alert alert-danger fs-5 border-0 shadow-sm rounded-3">{error}</div>}

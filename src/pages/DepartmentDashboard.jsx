@@ -15,7 +15,7 @@ const DepartmentDashboard = () => {
         setEnquiries([]);
         return;
       }
-      const res = await axios.get(`http://localhost:8081/api/enquiries/department/${departmentId}`);
+      const res = await axios.get(`/api/enquiries/department/${departmentId}`);
       setEnquiries(res.data);
     } catch (error) {
       console.error('Error fetching department enquiries', error);
@@ -30,7 +30,7 @@ const DepartmentDashboard = () => {
 
   const updateStatus = async (id, status) => {
     try {
-      await axios.put(`http://localhost:8081/api/enquiries/${id}/status?status=${status}`);
+      await axios.put(`/api/enquiries/${id}/status?status=${status}`);
       fetchEnquiries();
     } catch (error) {
       console.error('Error updating status', error);
@@ -40,7 +40,7 @@ const DepartmentDashboard = () => {
   const updateRemarks = async (id) => {
     const remark = remarksInput[id] || '';
     try {
-      await axios.put(`http://localhost:8081/api/enquiries/${id}/remarks`, remark, {
+      await axios.put(`/api/enquiries/${id}/remarks`, remark, {
         headers: { 'Content-Type': 'text/plain' }
       });
       fetchEnquiries();
